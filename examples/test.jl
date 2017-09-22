@@ -1,5 +1,3 @@
-use_cuda = false
-
 using Mocha
 srand(12345678)
 
@@ -20,11 +18,7 @@ Y = Y + 0.01*randn(size(Y))
 ############################################################
 # Define network
 ############################################################
-if use_cuda
-  backend = GPUBackend()
-else
-  backend = CPUBackend()
-end
+backend = DefaultBackend()
 init(backend)
 
 data_layer = MemoryDataLayer(batch_size=500, data=Array[X,Y])
@@ -41,8 +35,9 @@ lr_policy = LRPolicy.Staged(
   (6000, LRPolicy.Fixed(0.001)),
   (4000, LRPolicy.Fixed(0.0001)),
 )
-params = SolverParameters(regu_coef=0.0005, mom_policy=MomPolicy.Fixed(0.9), max_iter=10000, lr_policy=lr_policy)
-solver = SGD(params)
+method = SGD()
+params = make_solver_parameters(method, regu_coef=0.0005, mom_policy=MomPolicy.Fixed(0.9), max_iter=10000, lr_policy=lr_policy)
+solver = Solver(method, params)
 add_coffee_break(solver, TrainingSummary(), every_n_iter=100)
 
 solve(solver, net)

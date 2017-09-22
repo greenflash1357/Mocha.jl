@@ -1,3 +1,5 @@
+srand(100)
+
 if haskey(ENV, "MOCHA_USE_CUDA")
   const test_gpu = true
 else
@@ -38,6 +40,12 @@ end
 test_dir("layers")
 
 ############################################################
+# Solvers
+############################################################
+include("solvers/test-adam-solver.jl")
+include("solvers/test-sgd-solver.jl")
+
+############################################################
 # Network
 ############################################################
 include("net/topology.jl")
@@ -63,6 +71,8 @@ end
 ############################################################
 include("neurons/relu.jl")
 include("neurons/sigmoid.jl")
+include("neurons/tanh.jl")
+include("neurons/exponential.jl")
 
 ############################################################
 # Regularizers

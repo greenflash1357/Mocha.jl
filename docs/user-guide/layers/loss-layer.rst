@@ -1,6 +1,29 @@
 Loss Layers
 ~~~~~~~~~~~
 
+.. class:: HingeLossLayer
+
+   Compute the hinge loss for binary classification problems:
+
+   .. math::
+
+      \frac{1}{N}\sum_{i=1}^N \max(1 - \mathbf{y}_i \cdot \hat{\mathbf{y}}_i, 0)
+
+   Here :math:`N` is the batch-size, :math:`\mathbf{y}_i \in \{-1,1\}` is
+   the ground-truth label of the :math:`i`-th sample, and
+   :math:`\hat{\mathbf{y}}_i` is the corresponding prediction.
+
+   .. attribute:: weight
+
+      Default ``1.0``. Weight of this loss function. Could be useful when
+      combining multiple loss functions in a network.
+
+   .. attribute:: bottoms
+
+      Should be a vector containing two symbols. The first one specifies the
+      name for the prediction :math:`\hat{\mathbf{y}}`, and the second one
+      specifies the name for the ground-truth :math:`\mathbf{y}`.
+
 .. class:: MultinomialLogisticLossLayer
 
    The multinomial logistic loss is defined as :math:`\ell = -w_g\log(x_g)`, where
@@ -27,6 +50,11 @@ Loss Layers
       name for the conditional probability input blob, and the second one
       specifies the name for the ground-truth input blob.
 
+   .. attribute:: weight
+
+      Default ``1.0``. Weight of this loss function. Could be useful when
+      combining multiple loss functions in a network.
+
    .. attribute:: weights
 
       This can be used to specify weights for different classes. The following
@@ -34,11 +62,15 @@ Loss Layers
 
       * Empty array (default). This means each category should be equally
         weighted.
-      * A 3D tensor of the shape (width, height, channels). Here the (w,h,c)
-        entry indicates the weights for category c at location (w,h).
-      * A 1D vector of length ``channels``. When both width and height are 1,
-        this is equivalent to the case above. Otherwise, the weight vector
-        across channels is repeated at every location (w,h).
+      * A 1D vector of length ``channels``. This defines weights for each
+        category.
+      * An (N-1)D tensor of the shape of a data point. In other words, the same
+        shape as the prediction except that the last mini-batch dimension is
+        removed. This is equivalent to the above case if the prediction is a 2D
+        tensor of the shape ``channels``-by-``mini-batch``.
+      * An ND tensor of the same shape as the prediction blob. This allows us to
+        fully specify different weights for different data points in
+        a mini-batch. See :class:`SoftlabelSoftmaxLossLayer`.
 
    .. attribute:: dim
 
@@ -61,6 +93,32 @@ Loss Layers
       specify ``:no``, it is your responsibility to properly normalize the
       weights.
 
+.. class:: SoftlabelSoftmaxLossLayer
+
+   Like the :class:`SoftmaxLossLayer`, except that this deals with *soft
+   labels*. For multiclass classification with :math:`K` categories, we call an integer
+   value :math:`y\in\{0,\ldots,K-1\}` a *hard label*. In contrast, a soft label is
+   a vector on the :math:`K`-dimensional simplex. In other words, a soft label
+   specifies a probability distribution over all the :math:`K` categories, while
+   a hard label is a special case where all the probability masses concentrates
+   on one single category. In this case, this loss is basically computing the
+   KL-divergence D(p||q), where p is the ground-truth softlabel, and q is the
+   predicted distribution.
+
+   .. attribute:: dim
+
+      Default ``-2`` (penultimate). Specify the dimension to operate on.
+
+   .. attribute:: weight
+
+      Default ``1.0``. Weight of this loss function. Could be useful when
+      combining multiple loss functions in a network.
+
+   .. attribute:: bottoms
+
+      Should be a vector containing two symbols. The first one specifies the
+      name for the conditional probability input blob, and the second one
+      specifies the name for the ground-truth (soft labels) input blob.
 
 .. class:: SoftmaxLossLayer
 
@@ -112,6 +170,11 @@ Loss Layers
       a 4D vision tensor blob, the default value (penultimate) translates to the
       3rd tensor dimension, usually called the "channel" dimension.
 
+   .. attribute:: weight
+
+      Default ``1.0``. Weight of this loss function. Could be useful when
+      combining multiple loss functions in a network.
+
    .. attribute::
       weights
       normalize
@@ -131,8 +194,61 @@ Loss Layers
    (vector or scalar) ground-truth label of the :math:`i`-th sample, and
    :math:`\hat{\mathbf{y}}_i` is the corresponding prediction.
 
+   .. attribute:: weight
+
+      Default ``1.0``. Weight of this loss function. Could be useful when
+      combining multiple loss functions in a network.
+
    .. attribute:: bottoms
 
       Should be a vector containing two symbols. The first one specifies the
       name for the prediction :math:`\hat{\mathbf{y}}`, and the second one
       specifies the name for the ground-truth :math:`\mathbf{y}`.
+
+.. class:: BinaryCrossEntropyLossLayer
+
+   A simpler alternative to :class:`MultinomialLogisticLossLayer` for the
+   special case of binary classification.
+
+   .. math::
+
+      -\frac{1}{N}\sum_{i=1}^N \log(p_i)y_i + \log(1-p_i)(1-y_i)
+
+   Here :math:`N` is the batch-size, :math:`\mathbf{y}_i` is the ground-truth
+   label of the :math:`i`-th sample, and :math:``p_i`` is the corresponding
+   prediction.
+
+   .. attribute:: weight
+
+      Default ``1.0``. Weight of this loss function. Could be useful when
+      combining multiple loss functions in a network.
+
+   .. attribute:: bottoms
+
+      Should be a vector containing two symbols. The first one specifies the
+      name for the prediction :math:`\hat{\mathbf{y}}`, and the second one
+      specifies the name for the binary ground-truth labels :math:`\mathbf{p}`.
+
+.. class:: GaussianKLLossLayer
+
+    Given two inputs *mu* and *sigma* of the same size representing the means
+    and standard deviations of a diagonal multivariate Gaussian distribution, the
+    loss is the Kullback-Leibler divergence from that to the standard Gaussian of
+    the same dimension.
+
+    Used in variational autoencoders, as in `Kingma & Welling 2013 <http://arxiv.org/abs/1312.6114>`_, as a form of regularization.
+
+   .. math::
+      D_{KL}(\mathcal{N}(\mathbf{\mu}, \mathrm{diag}(\mathbf{\sigma})) \Vert \mathcal{N}(\mathbf{0}, \mathbf{I}) )
+      =  -\frac{1}{2}\left(\sum_{i=1}^N (\mu_i^2 + \sigma_i^2 - 2\log\sigma_i) - N\right)
+
+   .. attribute:: weight
+
+      Default ``1.0``. Weight of this loss function. Could be useful when
+      combining multiple loss functions in a network.
+
+   .. attribute:: bottoms
+
+      Should be a vector containing two symbols. The first one specifies the
+      name for the mean vector :math:`\mathbf{\mu}`, and the second one
+      the vector of standard deviations :math:`\mathbf{\sigma}`.

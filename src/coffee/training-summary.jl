@@ -1,12 +1,30 @@
 export TrainingSummary
 
 type TrainingSummary <: Coffee
+  statistic_names :: Vector{Any}
+
+  #Default Constructor
+  TrainingSummary(statistic_names...) = begin
+      if !isempty(statistic_names)
+          new(collect(statistic_names))
+      else
+          new([:iter, :obj_val])
+      end
+  end
 end
 
-function enjoy(lounge::CoffeeLounge, ::TrainingSummary, ::Net, state::SolverState)
-  # we do not report objective value at iteration 0 because it has not been computed yet
-  summary = @sprintf("%06d :: TRAIN obj-val = %.8f", state.iter, state.obj_val)
-  @info(summary)
 
-  update_statistics(lounge, "obj-val", state.obj_val)
+function enjoy(lounge::CoffeeLounge, coffee::TrainingSummary, ::Net, state::SolverState)
+  summaries = AbstractString[]
+
+  for statistic_name in coffee.statistic_names
+    statval = get_statistic(state, statistic_name)
+    push!(summaries, format_statistic(state, statistic_name, statval))
+    if statistic_name != :iter
+        update_statistics(lounge, string(statistic_name), statval)
+    end
+  end
+
+  @info(" TRAIN ", join(summaries, ' '))
+
 end

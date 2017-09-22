@@ -1,9 +1,9 @@
-export CoffeeBreak
+export CoffeeBreak, Coffee, CoffeeLounge
 export init, enjoy, destroy
-export CoffeeLounge, add_coffee_break, check_coffee_break, setup, update_statistics
-export save_statistics, shutdown
+export add_coffee_break, check_coffee_break, setup
+export update_statistics, get_statistics, save_statistics, shutdown
 
-abstract Coffee
+@compat abstract type Coffee end
 function init(::Coffee, ::Net) end
 # The first parameter will be a CoffeeLounge, we put Any here because
 # Julia do not have forward declaration
@@ -16,19 +16,34 @@ type CoffeeBreak
   every_n_epoch :: Int
 end
 
+
+############################################################
+# Coffee break utilities
+############################################################
+#-- This function is to be called by the end-user
+function setup_coffee_lounge(solver::Solver; save_into::AbstractString="", every_n_iter::Int=1, file_exists=:merge)
+  solver.coffee_lounge.filename=save_into
+  solver.coffee_lounge.save_every_n_iter=every_n_iter
+  solver.coffee_lounge.file_exists=file_exists
+end
+
+function add_coffee_break(solver::Solver, coffee::Coffee; kw...)
+  add_coffee_break(solver.coffee_lounge, coffee; kw...)
+end
+
 ################################################################################
 # Coffee Lounge
 ################################################################################
 using HDF5, JLD
 
-typealias StatisticsValue FloatingPoint
-typealias StatisticsRecords Dict{Int, StatisticsValue}
+const StatisticsValue = AbstractFloat
+const StatisticsRecords = Dict{Int, StatisticsValue}
 type CoffeeLounge
-  filename          :: String
+  filename          :: AbstractString
   save_every_n_iter :: Int
   file_exists       :: Symbol # :overwrite, :panic, :merge
 
-  statistics        :: Dict{String, StatisticsRecords}
+  statistics        :: Dict{AbstractString, StatisticsRecords}
   coffee_breaks     :: Vector{CoffeeBreak}
 
   stats_modified    :: Bool
@@ -37,7 +52,7 @@ type CoffeeLounge
 
   CoffeeLounge(;filename="", save_every_n_iter=1, file_exists=:merge) = begin
     lounge = new(filename, save_every_n_iter, file_exists)
-    lounge.statistics = Dict{String, StatisticsRecords}()
+    lounge.statistics = Dict{AbstractString, StatisticsRecords}()
     lounge.coffee_breaks = CoffeeBreak[]
     return lounge
   end
@@ -75,11 +90,23 @@ function setup(lounge::CoffeeLounge, state::SolverState, net::Net)
   end
 end
 
-function update_statistics(lounge::CoffeeLounge, key::String, val::StatisticsValue)
+function update_statistics(dummy, key::AbstractString, val::StatisticsValue)
+  # dummy function used when you do not want to record statistics
+end
+
+function update_statistics(lounge::CoffeeLounge, key::AbstractString, val::StatisticsValue)
   dict = get(lounge.statistics, key, StatisticsRecords())
   dict[lounge.curr_iter] = val
   lounge.statistics[key] = dict
   lounge.stats_modified = true
+end
+
+function get_statistics(lounge::CoffeeLounge, key::AbstractString)
+  if haskey(lounge.statistics, key)
+    lounge.statistics[key]
+  else
+    StatisticsRecords()
+  end
 end
 
 function save_statistics(lounge::CoffeeLounge)

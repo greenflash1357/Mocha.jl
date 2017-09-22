@@ -5,6 +5,10 @@ A backend in Mocha is a component that carries out the actual numerical computat
 Mocha is designed to support multiple backends, and switching between different
 backends should be almost transparent to the rest of the world.
 
+There is a ``DefaultBackend`` defined which is a typealias for one of the following
+backends, depending on availability. By default, ``GPUBackend`` is preferred if
+CUDA is available, falling back to the ``CPUBackend`` otherwise.
+
 Pure Julia CPU Backend
 ----------------------
 
@@ -130,9 +134,9 @@ free.
    * cuDNN requires CUDA 6.5 to run.
    * Mocha v0.0.1 ~ v0.0.4 use cuDNN 6.5 R1, which is only available on Linux
      and Windows.
-   * Mocha v0.0.5 and higher uses cuDNN 6.5 R2, which is also
+   * Mocha v0.0.5 and higher uses cuDNN 6.5 v2, which is also
      available on Mac OS X.
-   * cuDNN 6.5 R2 is **not** backward compatible with cuDNN 6.5 R1.
+   * cuDNN 6.5 v2 is **not** backward compatible with cuDNN 6.5 R1.
 
 Before using the CUDA backend, the Mocha kernels needs to be compiled. The kernels
 are located in ``src/cuda/kernels``. Please use ``Pkg.dir("Mocha")`` to find out
@@ -163,7 +167,10 @@ setting the environment variable ``MOCHA_USE_CUDA``. For example:
 Note that instead of instantiating a ``CPUBackend``, you now construct
 a ``GPUBackend``. The environment variable needs to be set **before** loading
 Mocha. It is designed to use conditional loading so that the pure CPU backend
-can still run on machines which don't have a GPU device or don't have the CUDA library installed.
+can still run on machines which don't have a GPU device or don't have the CUDA
+library installed. If you have multiple GPU devices on one node, the environment
+variable ``MOCHA_CUDA_DEVICE`` can be used to specify the device ID to use. The
+default device ID is ``0``.
 
 Recompiling Kernels
 ~~~~~~~~~~~~~~~~~~~

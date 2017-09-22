@@ -48,20 +48,40 @@ end
 @defkernels(
   logistic_loss_forward_float,
   logistic_loss_forward_double,
+  binary_cross_entropy_loss_forward_float,
+  binary_cross_entropy_loss_forward_double,
+  binary_cross_entropy_loss_backward_float,
+  binary_cross_entropy_loss_backward_double,
   softmax_loss_backward_float,
   softmax_loss_backward_double,
+  hinge_loss_forward_float,
+  hinge_loss_forward_double,
+  hinge_loss_backward_float,
+  hinge_loss_backward_double,
   relu_forward_float,
   relu_forward_double,
   relu_backward_float,
   relu_backward_double,
+  lrelu_forward_float,
+  lrelu_forward_double,
+  lrelu_backward_float,
+  lrelu_backward_double,
   sigmoid_forward_float,
   sigmoid_forward_double,
   sigmoid_backward_float,
   sigmoid_backward_double,
+  tanh_forward_float,
+  tanh_forward_double,
+  tanh_backward_float,
+  tanh_backward_double,
   accuracy_forward_float,
   accuracy_forward_double,
+  binary_accuracy_forward_float,
+  binary_accuracy_forward_double,
   argmax_forward_float,
   argmax_forward_double,
+  index2onehot_forward_float,
+  index2onehot_forward_double,
 
   add_scal_float,
   add_scal_double,
@@ -81,6 +101,10 @@ end
   elem_pow_di,
   elem_pow_ff,
   elem_pow_dd,
+  elem_log_double,
+  elem_log_float,
+  elem_exp_double,
+  elem_exp_float,
 
   max_channel_pooling_forward_float,
   max_channel_pooling_forward_double,
@@ -108,6 +132,11 @@ end
   l1_forward_double,
   l1_backward_float,
   l1_backward_double,
+
+  stdnormal_init,
+  stdnormal_alloc_size,
+  stdnormal_forward_float,
+  stdnormal_forward_double,
 )
 
 function shutdown(mocha :: MochaKernels)
@@ -131,7 +160,7 @@ function init(backend::GPUBackend)
 
   @info("Initializing CuDNN backend...")
   CUDA.init()
-  dev = CUDA.CuDevice(0)
+  dev = CUDA.CuDevice(Config.cuda_dev_id)
   backend.cu_ctx = CUDA.create_context(dev)
   backend.cublas_ctx = CuBLAS.create()
   backend.cudnn_ctx = CuDNN.create()
@@ -152,4 +181,3 @@ function shutdown(backend::GPUBackend)
   backend.initialized = false
   @info("CuDNN Backend shutdown finished!")
 end
-

@@ -1,4 +1,5 @@
-julia_cmd := julia --color=yes --check-bounds
+JULIA?=julia
+julia_cmd := $(JULIA) --color=yes --check-bounds=yes
 srun_cmd := srun --pty -p gpu --gres=gpu:1 --mem=8000
 
 default:
@@ -12,10 +13,10 @@ test:
 	$(julia_cmd) runtests.jl
 
 test-ext:
-	bash -c "MOCHA_USE_NATIVE_EXT=true $(julia_cmd) runtests.jl"
+	MOCHA_USE_NATIVE_EXT=true $(julia_cmd) runtests.jl
 
 test-gpu:
-	bash -c "MOCHA_USE_CUDA=true $(julia_cmd) runtests.jl"
+	MOCHA_USE_CUDA=true $(julia_cmd) runtests.jl
 
 test-srun:
-	$(srun_cmd) bash -c "$(julia_cmd) runtests.jl"
+	$(srun_cmd) bash -c "MOCHA_USE_CUDA=true $(julia_cmd) runtests.jl"

@@ -1,13 +1,13 @@
 @defstruct TiedInnerProductLayer Layer (
-  (name :: String = "", !isempty(name)),
-  param_key :: String = "",
-  (tied_param_key :: String = "", !isempty(tied_param_key)),
+  (name :: AbstractString = "", !isempty(name)),
+  param_key :: AbstractString = "",
+  (tied_param_key :: AbstractString = "", !isempty(tied_param_key)),
   (tops :: Vector{Symbol} = Symbol[], length(tops) > 0),
   (bottoms :: Vector{Symbol} = Symbol[], length(bottoms) == length(tops)),
   bias_init :: Initializer = ConstantInitializer(0),
   bias_regu :: Regularizer = NoRegu(),
   bias_cons :: Constraint = NoCons(),
-  bias_lr :: FloatingPoint = 2.0,
+  bias_lr :: AbstractFloat = 2.0,
   neuron :: ActivationFunction = Neurons.Identity()
 )
 @characterize_layer(TiedInnerProductLayer,
@@ -48,9 +48,9 @@ type TiedInnerProductLayerState <: LayerState
     @assert size(W, 2) == fea_size
     out_dim = size(W, 1)
 
-    blobs = Array(Blob, length(inputs))
-    blobs_diff = Array(Blob, length(inputs))
-    bias_multipliers = Array(Blob, length(inputs))
+    blobs = Array{Blob}(length(inputs))
+    blobs_diff = Array{Blob}(length(inputs))
+    bias_multipliers = Array{Blob}(length(inputs))
 
     for i = 1:length(inputs)
       nums = get_num(inputs[i])

@@ -1,7 +1,7 @@
 export Blob
 export CPUBlob, NullBlob
 
-import Base: eltype, size, length, ndims, copy!, fill!, show
+import Base: eltype, size, length, ndims, copy!, fill!, show, randn!
 export       eltype, size, length, ndims, copy!, fill!, erase!, show
 export get_num, get_height, get_width, get_fea_size, to_array
 export make_blob, make_zero_blob, reshape_blob
@@ -12,7 +12,7 @@ export make_blob, make_zero_blob, reshape_blob
 # either live in CPU memory or GPU memory or
 # whatever the backend is used to store the data.
 ############################################################
-abstract Blob{T, N}
+@compat abstract type Blob{T, N} end
 
 ############################################################
 # The following should be implemented for a
@@ -28,11 +28,11 @@ end
 function ndims{T,N}(blob :: Blob{T,N})
   N
 end
-function size(blob :: Blob)
-  error("Not implemented (should return the size of data)")
+function size(blob :: Blob) # should return the size of data
+  error("size not implemented for type $(typeof(blob))")
 end
-function destroy(blob :: Blob)
-  error("Not implemented (should destroy the blob)")
+function destroy(blob :: Blob) # should destroy the blob
+  error("destroy not implemented for type $(typeof(blob))")
 end
 function size{T,N}(blob :: Blob{T,N}, dim :: Int)
   if dim < 0
@@ -65,28 +65,31 @@ function show(io::IO, blob :: Blob)
 end
 
 function to_array(blob::Blob)
-  array = Array(eltype(blob), size(blob))
+  array = Array{eltype(blob)}(size(blob))
   copy!(array, blob)
   array
 end
 
-function copy!(dst :: Array, src :: Blob)
-  error("Not implemented (should copy content of src to dst)")
+function copy!(dst :: Array, src :: Blob) # should copy content of src to dst
+  error("copy! not implemented from src type $(typeof(src)) to dest type $(typeof(dst))")
 end
-function copy!(dst :: Blob, src :: Array)
-  error("Not implemented (should copy content of src to dst)")
+function copy!(dst :: Blob, src :: Array) # should copy content of src to dst
+  error("copy! not implemented from src type $(typeof(src)) to dest type $(typeof(dst))")
 end
-function fill!(dst :: Blob, val)
-  error("Not implemented (should fill dst with val)")
+function fill!(dst :: Blob, val) # should fill dst with val
+  error("fill! not implemented for src value type $(typeof(val)) to dest type $(typeof(dst))")
 end
 function erase!(dst :: Blob)
   fill!(dst, 0)
+end
+function randn!(dst :: Blob) # should fill dst with iid standard normal variates
+  error("randn! not implemented for type $(typeof(dst))")
 end
 
 ############################################################
 # A Dummy Blob type holding nothing
 ############################################################
-type NullBlob <: Blob
+type NullBlob <: Blob{Void, 0}
 end
 function fill!(dst :: NullBlob, val)
   # do nothing
@@ -122,10 +125,10 @@ end
 ############################################################
 # A Blob for CPU Computation
 ############################################################
-immutable CPUBlob{T <: FloatingPoint, N} <: Blob{T, N}
+immutable CPUBlob{T <: AbstractFloat, N} <: Blob{T, N}
   data :: AbstractArray{T, N}
 end
-CPUBlob{N}(t :: Type, dims::NTuple{N,Int}) = CPUBlob(Array(t, dims))
+CPUBlob{N}(t :: Type, dims::NTuple{N,Int}) = CPUBlob(Array{t}(dims))
 
 function make_blob{N}(backend::CPUBackend, data_type::Type, dims::NTuple{N,Int})
   return CPUBlob(data_type, dims)
@@ -154,4 +157,13 @@ function copy!{T}(dst :: CPUBlob{T}, src :: CPUBlob{T})
 end
 function fill!{T}(dst :: CPUBlob{T}, src)
   fill!(dst.data, src)
+end
+function randn!{T}(dst :: CPUBlob{T})
+  randn!(dst.data)
+end
+
+function randn!(a::Array{Float32})
+    # TODO This is hideously inefficient - check status of Julia issue
+    # https://github.com/JuliaLang/julia/issues/9836
+    @compat a[:] = map(Float32, randn(size(a)))
 end

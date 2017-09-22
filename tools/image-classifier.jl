@@ -1,6 +1,7 @@
 using Images # requires Package Images.jl
-using Color
+using Colors # requires Package Colors.jl
 using Mocha
+using Compat
 
 type ImageClassifier
   net           :: Net
@@ -39,7 +40,7 @@ function ImageClassifier(net::Net, softmax_blob_name::Symbol;
   end
 
   pred_blob = net.output_blobs[softmax_blob_name]
-  pred = Array(data_type, size(pred_blob))
+  pred = Array{data_type}(size(pred_blob))
 
   return ImageClassifier(net, channel_order, sp_order, grayscale, classes,
       data_layer, pred_blob, pred, data_type, batch_size, image_wh)
@@ -49,13 +50,13 @@ end
 # Interfaces
 ################################################################################
 #-- Classify a single image via filename
-function classify(classifier::ImageClassifier, filename::String)
-  results = classify(classifier, String[filename])
+function classify(classifier::ImageClassifier, filename::AbstractString)
+  results = classify(classifier, AbstractString[filename])
   return results[1]
 end
 
 #-- Classify a bunch of images via filename
-function classify{T<:String}(classifier::ImageClassifier, filenames::Vector{T})
+function classify{T<:AbstractString}(classifier::ImageClassifier, filenames::Vector{T})
   return classify(classifier, map(Images.imread, filenames))
 end
 
@@ -116,7 +117,7 @@ function preprocess(classifier::ImageClassifier, images::Vector{Image})
     if classifier.grayscale
       data2 = convert(Array{classifier.data_type}, data)
     else
-      data2 = Array(classifier.data_type, tuple(classifier.image_wh..., 3))
+      data2 = Array{classifier.data_type}(tuple(classifier.image_wh..., 3))
       for i = 1:3
         data2[:,:,i] = convert(Array{classifier.data_type},
             data[:,:,classifier.channel_order[i]])

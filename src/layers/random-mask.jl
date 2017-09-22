@@ -1,6 +1,6 @@
 @defstruct RandomMaskLayer Layer (
-  name :: String = "random-mask",
-  (ratio :: FloatingPoint = 0.5, 0 < ratio < 1),
+  name :: AbstractString = "random-mask",
+  (ratio :: AbstractFloat = 0.5, 0 < ratio < 1),
   (bottoms :: Vector{Symbol} = Symbol[], length(bottoms) > 0)
 )
 @characterize_layer(RandomMaskLayer,
@@ -15,10 +15,10 @@ type RandomMaskLayerState <: LayerState
 end
 
 function setup(backend::Backend, layer::RandomMaskLayer, inputs::Vector{Blob}, diffs::Vector{Blob})
-  dropouts = Array(DropoutLayerState, length(inputs))
+  dropouts = Array{DropoutLayerState}(length(inputs))
   for i = 1:length(inputs)
     dropout_layer = DropoutLayer(name="$(layer.name)-dropout-$i", auto_scale=false, ratio=layer.ratio,
-        bottoms=Symbol[symbol("$(layer.bottoms[i])-$i")])
+        bottoms=Symbol[Symbol("$(layer.bottoms[i])-$i")])
     dropouts[i] = setup(backend, dropout_layer, Blob[inputs[i]], Blob[diffs[i]])
   end
   return RandomMaskLayerState(layer, dropouts)

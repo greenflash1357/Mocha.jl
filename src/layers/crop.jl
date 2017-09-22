@@ -1,5 +1,5 @@
 @defstruct CropLayer Layer (
-  name :: String = "crop",
+  name :: AbstractString = "crop",
   random_crop :: Bool = false,
   random_mirror :: Bool = false,
   (crop_size :: NTuple{2, Int} = (0,0), crop_size[1] > 0 && crop_size[2] > 0),
@@ -18,7 +18,7 @@ function setup(backend::Backend, layer::CropLayer, inputs::Vector{Blob}, diffs::
     @assert isa(diffs[i], NullBlob) # Back-propagation for crop-layer is not implemented
   end
 
-  blobs = Array(Blob, length(inputs))
+  blobs = Array{Blob}(length(inputs))
   for i = 1:length(inputs)
     width, height, channels, num = size(inputs[i])
     @assert layer.crop_size[1] <= width && layer.crop_size[2] <= height
@@ -76,7 +76,7 @@ function forward(backend::CPUBackend, state::CropLayerState, inputs::Vector{Blob
       w_off = div(size(input,1)-crop_size[1], 2)
       h_off = div(size(input,2)-crop_size[2], 2)
     end
-    if state.layer.random_mirror && rand(Uint)%2 == 0
+    if state.layer.random_mirror && rand(UInt)%2 == 0
       mirror_crop_blob(input, output, crop_size, (w_off, h_off))
     else
       crop_blob(input, output, crop_size, (w_off, h_off))

@@ -30,7 +30,7 @@ function forward(backend::GPUBackend, state::PowerLayerState, inputs::Vector{Blo
         CuVec.mul!(backend, data_type, output.ptr.p, output.ptr.p, len)
       else
         CuVec.pow!(backend, data_type, output.ptr.p,
-            isinteger(state.layer.power) ? int(state.layer.power) : convert(data_type, state.layer.power),
+            isinteger(state.layer.power) ? round(Int, state.layer.power) : convert(data_type, state.layer.power),
             len)
       end
     end
@@ -43,9 +43,12 @@ function backward(backend::GPUBackend, state::PowerLayerState,
   data_type = eltype(inputs[1])
   pow_scale = convert(data_type,state.layer.power * state.layer.scale)
   for i = 1:length(inputs)
-    len = length(inputs[i])
-
     diff = diffs[i]
+    if isa(diff, NullBlob)
+      continue
+    end
+
+    len = length(inputs[i])
     if state.layer.power == 1 || state.layer.scale == 0
       # trivial case, derivative is constant
       fill!(diff, pow_scale)

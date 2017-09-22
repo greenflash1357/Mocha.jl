@@ -12,9 +12,17 @@
 #include "caffe/net.hpp"
 #include "caffe/proto/caffe.pb.h"
 #include "caffe/util/io.hpp"
-#include "caffe/vision_layers.hpp"
+#include "caffe/util/hdf5.hpp"
+#include "caffe/layer.hpp"
+#include "caffe/layers/conv_layer.hpp"
+#include "caffe/layers/lrn_layer.hpp"
+#include "caffe/layers/pooling_layer.hpp"
+#include "caffe/layers/relu_layer.hpp"
+#include "caffe/layers/sigmoid_layer.hpp"
+#include "caffe/layers/softmax_layer.hpp"
+#include "caffe/layers/tanh_layer.hpp"
+#include "caffe/layers/inner_product_layer.hpp"
 
-using namespace std;
 using namespace caffe;  // NOLINT(build/namespaces)
 
 void dump_weight_bias(hid_t &h5file, Layer<float> *layer, const string& layer_name, const string& weight_name);
@@ -22,7 +30,6 @@ void dump_weight_bias(hid_t &h5file, Layer<float> *layer, const string& layer_na
 int main(int argc, char** argv) {
   caffe::GlobalInit(&argc, &argv);
   Caffe::set_mode(Caffe::CPU);
-  Caffe::set_phase(Caffe::TEST);
 
   if (argc != 4) {
     LOG(ERROR) << "Usage:";
@@ -37,7 +44,7 @@ int main(int argc, char** argv) {
   hid_t file_id = H5Fcreate(hdf5_output_fn, H5F_ACC_TRUNC, H5P_DEFAULT, H5P_DEFAULT);
 
   shared_ptr<Net<float> > caffe_net;
-  caffe_net.reset(new Net<float>(network_params));
+  caffe_net.reset(new Net<float>(network_params, caffe::TEST));
   caffe_net->CopyTrainedLayersFrom(network_snapshot);
 
   const vector<shared_ptr<Layer<float> > >& layers = caffe_net->layers();

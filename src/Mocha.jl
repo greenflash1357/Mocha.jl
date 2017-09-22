@@ -1,8 +1,8 @@
 module Mocha
 
+include("compatibility.jl")
 include("logging.jl")
 include("config.jl")
-include("compatibility.jl")
 
 if Config.use_native_extension
   include("native.jl")
@@ -38,6 +38,11 @@ if Config.use_cuda
   include("cuda/utils/shifted-copy.jl")
 end
 
+export DefaultBackend
+const DefaultBackend = Config.use_cuda ? GPUBackend : CPUBackend
+const default_backend_type = Config.use_cuda ? "gpu" : "cpu"
+@show DefaultBackend
+
 include("initializers.jl")
 include("regularizers.jl")
 include("constraints.jl")
@@ -70,11 +75,23 @@ end
 include("layers/pooling/channel-pooling.jl")
 
 include("net.jl")
-include("coffee-break.jl")
+
 
 include("solvers.jl")
+include("coffee-break.jl")
+include("solvers/sgd-common.jl") # for SGD and Nesterov
+include("solvers/policies.jl")
+include("solvers/sgd.jl")
+include("solvers/nesterov.jl")
+include("solvers/adam.jl")
+include("solvers/adagrad.jl")
+include("solvers/adadelta.jl")
+
 if Config.use_cuda
   include("cuda/solvers.jl")
 end
+
+include("utils/gradient-checking.jl")
+include("utils/graphviz.jl")
 
 end # module

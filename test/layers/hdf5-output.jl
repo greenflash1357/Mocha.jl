@@ -7,13 +7,13 @@ function test_hdf5_output_layer(backend::Backend, T, eps)
   # Prepare Data for Testing
   ############################################################
   tensor_dim = abs(rand(Int)) % 4 + 2
-  dims = tuple((abs(rand(Int, tensor_dim)) % 8 + 1)...)
+  dims = tuple(rand(1:8, tensor_dim)...)
   println("    > $dims")
 
   input = rand(T, dims)
   input_blob = make_blob(backend, input)
 
-  output_fn = string(tempname(), ".hdf5")
+  output_fn = string(Mocha.temp_filename(), ".hdf5")
   open(output_fn, "w") do file
     # create an empty file
   end
@@ -38,7 +38,7 @@ function test_hdf5_output_layer(backend::Backend, T, eps)
 
   @test size(expected_output) == size(got_output)
   @test eltype(expected_output) == eltype(got_output)
-  @test all(abs(expected_output-got_output) .< eps)
+  @test all(abs.(expected_output-got_output) .< eps)
 
   rm(output_fn)
 end

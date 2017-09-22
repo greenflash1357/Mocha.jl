@@ -1,10 +1,10 @@
 using HDF5
 
 @defstruct HDF5OutputLayer Layer (
-  name :: String = "hdf5-output",
+  name :: AbstractString = "hdf5-output",
   (bottoms :: Vector{Symbol} = [], length(bottoms) > 0),
   (datasets :: Vector{Symbol} = Symbol[], length(datasets) == 0 || length(datasets) == length(bottoms)),
-  (filename :: String = "", !isempty(filename)),
+  (filename :: AbstractString = "", !isempty(filename)),
   force_overwrite :: Bool = false,
 )
 @characterize_layer(HDF5OutputLayer,
@@ -34,14 +34,14 @@ function setup(backend::Backend, layer::HDF5OutputLayer, inputs::Vector{Blob}, d
   end
 
   file = h5open(layer.filename, "w")
-  buffer = Array(Array, length(inputs))
-  dsets  = Array(Any, length(inputs))
+  buffer = Array{Array}(length(inputs))
+  dsets  = Array{Any}(length(inputs))
   for i = 1:length(inputs)
     data_type = eltype(inputs[i])
     dims = size(inputs[i])
     dsets[i] = d_create(file, string(datasets[i]), datatype(data_type),
         dataspace(dims, max_dims=tuple(dims[1:end-1]..., -1)), "chunk", dims)
-    buffer[i] = Array(data_type, dims)
+    buffer[i] = Array{data_type}(dims)
   end
 
   return HDF5OutputLayerState(layer, file, buffer, dsets, 1)

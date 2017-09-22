@@ -1,5 +1,5 @@
 @defstruct ConcatLayer Layer (
-  name :: String = "concat",
+  name :: AbstractString = "concat",
   (dim :: Int = 3, dim >= 1),
   (bottoms :: Vector{Symbol} = [], length(bottoms) >= 2),
   (tops :: Vector{Symbol} = [], length(tops) == 1)
@@ -41,7 +41,12 @@ function setup(backend::Backend, layer::ConcatLayer, inputs::Vector{Blob}, diffs
   data_type = eltype(inputs[1])
 
   blobs = Blob[make_blob(backend, data_type, my_dim)]
-  blobs_diff = Blob[make_blob(backend, data_type, my_dim)]
+  if all(map(b -> isa(b, NullBlob), diffs))
+    blobs_diff = Blob[NullBlob()]
+  else
+    blobs_diff = Blob[make_blob(backend, data_type, my_dim)]
+  end
+
   return ConcatLayerState(layer, blobs, blobs_diff)
 end
 
@@ -63,6 +68,7 @@ function forward(backend::CPUBackend, state::ConcatLayerState, inputs::Vector{Bl
 end
 
 function backward(backend::CPUBackend, state::ConcatLayerState, inputs::Vector{Blob}, diffs::Vector{Blob})
+  isa(state.blobs_diff[1], NullBlob) && return
   idx = map(x -> 1:x, [size(state.blobs_diff[1])...])
   idx_start = 1
   for i = 1:length(diffs)

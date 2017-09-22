@@ -1,7 +1,7 @@
 function test_channel_pooling_layer(backend::Backend, pooling::PoolingFunction, tensor_dim::Int, n_input, T, eps)
   println("-- Testing ChannelPooling($(typeof(pooling))) on $(typeof(backend)){$T}...")
 
-  dims = [abs(rand(Int, tensor_dim)) % 7 + 7 for i = 1:n_input]
+  dims = [rand(7:13, tensor_dim) for i = 1:n_input]
   op_dim = max(abs(rand(Int)) % tensor_dim, 1)
   pad = (2,2)
   kernel = 3
@@ -10,7 +10,7 @@ function test_channel_pooling_layer(backend::Backend, pooling::PoolingFunction, 
   println("    > Setup (pool along dimension $op_dim for $tensor_dim-D tensors)")
 
   layer = ChannelPoolingLayer(kernel=kernel, stride=stride, pad=pad, pooling=pooling,
-      tops=Array(Symbol,n_input), bottoms=Array(Symbol,n_input), channel_dim=op_dim)
+      tops=Array{Symbol}(n_input), bottoms=Array{Symbol}(n_input), channel_dim=op_dim)
 
   input = [rand(T, dim...) for dim in dims]
   inputs = Blob[make_blob(backend, x) for x in input]
@@ -21,7 +21,7 @@ function test_channel_pooling_layer(backend::Backend, pooling::PoolingFunction, 
   println("    > Forward")
   forward(backend, state, inputs)
 
-  payloads = Array(Any, n_input)
+  payloads = Array{Any}(n_input)
   for i = 1:n_input
     expected_output, payloads[i] = channel_pooling_forward(state, i, input[i], op_dim)
     got_output = to_array(state.blobs[i])
@@ -103,7 +103,7 @@ function channel_pooling_backward(state, i, input::Array, diff::Array, payload::
       cstart = max(1, cstart)
 
       if isa(state.layer.pooling, Pooling.Max)
-        region = sub(canonical_gradient,1:dim_pre,cstart:cend,n)
+        region = view(canonical_gradient,1:dim_pre,cstart:cend,n)
         maxidx = canonical_mask[:,pc,n]
         region[vec(maxidx)] += vec(canonical_diff[:,pc,n])
       elseif isa(state.layer.pooling, Pooling.Mean)

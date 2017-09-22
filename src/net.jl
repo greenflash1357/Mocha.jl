@@ -1,10 +1,10 @@
 export Net
-export init, destroy, forward, backward, forward_backward, get_epoch, check_bp_topology
+export init, destroy, forward, forward_epoch, backward, forward_backward, get_epoch, check_bp_topology
 export get_layer, get_layer_state, freeze!, unfreeze!, freeze_all!, unfreeze_all!
-export show_statistics, reset_statistics
+export dump_statistics, reset_statistics
 
 type Net{T <: Backend}
-  name           :: String
+  name           :: AbstractString
   backend        :: T
 
   # all layers, sorted in topological order
@@ -42,31 +42,35 @@ end
 function get_layer(net::Net, idx::Int)
   net.layers[idx]
 end
-function get_layer_index(net::Net, name::String)
+function get_layer_index(net::Net, name::AbstractString)
   index = filter(i -> net.layers[i].name == name, 1:length(net.layers))
   @assert length(index) == 1
   index[1]
 end
-function get_layer(net::Net, name::String)
+function get_layer(net::Net, name::AbstractString)
   net.layers[get_layer_index(net, name)]
 end
 
 function get_layer_state(net::Net, idx::Int)
   net.states[idx]
 end
-function get_layer_state(net::Net, name::String)
+function get_layer_state(net::Net, name::AbstractString)
   net.states[get_layer_index(net, name)]
 end
 
 function freeze!(net::Net) end
 function freeze!(net::Net, idx::Int...)
   for i in idx
-    freeze!(get_layer_state(net, i))
+    layer_state = get_layer_state(net, i)
+    @info("Freezing layer $(layer_state.layer.name) in network $(net.name)...")
+    freeze!(layer_state)
   end
 end
-function freeze!(net::Net, names::String...)
+function freeze!(net::Net, names::AbstractString...)
   for name in names
-    freeze!(get_layer_state(net, name))
+    layer_state = get_layer_state(net, name)
+    @info("Freezing layer $(layer_state.layer.name) in network $(net.name)...")
+    freeze!(layer_state)
   end
 end
 
@@ -76,7 +80,7 @@ function unfreeze!(net::Net, idx::Int...)
     unfreeze!(get_layer_state(net, i))
   end
 end
-function unfreeze!(net::Net, names::String...)
+function unfreeze!(net::Net, names::AbstractString...)
   for name in names
     unfreeze!(get_layer_state(net, name))
   end
@@ -124,13 +128,20 @@ function reset_statistics(net::Net)
   end
 end
 
-function forward_backward(net::Net, regu_coef :: FloatingPoint = 0.0)
+function forward_backward(net::Net, regu_coef :: AbstractFloat = 0.0)
   obj_val = forward(net, regu_coef)
   backward(net, regu_coef)
   return obj_val
 end
 
-function forward(net::Net, regu_coef :: FloatingPoint = 0.0)
+function forward_epoch(net::Net)
+  epoch = get_epoch(net)
+  while get_epoch(net) == epoch
+    forward(net)
+  end
+end
+
+function forward(net::Net, regu_coef :: AbstractFloat = 0.0)
   obj_val = 0.0
 
   for i = 1:length(net.layers)
@@ -162,7 +173,7 @@ function forward(net::Net, regu_coef :: FloatingPoint = 0.0)
   return obj_val
 end
 
-function backward(net::Net, regu_coef :: FloatingPoint = 0.0)
+function backward(net::Net, regu_coef :: AbstractFloat = 0.0)
   for i = length(net.layers):-1:1
     if has_neuron(net.layers[i]) && !isa(net.layers[i].neuron, Neurons.Identity)
       state = net.states[i]
@@ -182,16 +193,16 @@ function backward(net::Net, regu_coef :: FloatingPoint = 0.0)
 end
 
 
-Net(name::String, backend::Backend, layers :: Vector{Layer}) = begin
+Net(name::AbstractString, backend::Backend, layers :: Vector{Layer}) = begin
   @info("Constructing net $name on $backend...")
   @info("Topological sorting $(length(layers)) layers...")
   layers = topological_sort(layers)
   data_layers = find(l -> is_source(l), layers)
 
   n = length(layers)
-  states = Array(LayerState, n)
-  blobs_forward = Array(Vector{Blob}, n)
-  blobs_backward = Array(Vector{Blob}, n)
+  states = Array{LayerState}(n)
+  blobs_forward = Array{Vector{Blob}}(n)
+  blobs_backward = Array{Vector{Blob}}(n)
 
   output_blobs = Dict{Symbol,Blob}()
   diff_blobs = Dict{Symbol,Blob}()
@@ -200,7 +211,7 @@ Net(name::String, backend::Backend, layers :: Vector{Layer}) = begin
   for i = 1:n
     layer = layers[i]
     # record if layers has any dependency
-    if :bottoms ∈ names(layer)
+    if :bottoms ∈ fieldnames(layer)
       blob_fwd = Blob[output_blobs[x] for x in layer.bottoms]
       blob_bwd = Blob[diff_blobs[x] for x in layer.bottoms]
     else
@@ -293,7 +304,7 @@ function topological_sort(layers :: Vector{Layer})
     # inplace layers should always be put first
     idx_inplace = filter(i -> is_inplace(layers[i]), idx)
     idx_normal  = filter(i -> !is_inplace(layers[i]), idx)
-    idx = [idx_inplace, idx_normal]
+    idx = [idx_inplace; idx_normal]
 
     push!(index, idx...)
     graph[idx,:] = 2 # make sure we don't select those again

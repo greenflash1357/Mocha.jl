@@ -1,9 +1,9 @@
 # Note ReshapeLayer is NOT a UtilLayer because it computes backward (via some upper layers)
 @defstruct ReshapeLayer Layer (
-  name :: String = "reshape",
+  name :: AbstractString = "reshape",
   (tops :: Vector{Symbol} = [], length(tops) > 0),
   (bottoms :: Vector{Symbol} = [], length(bottoms) == length(tops)),
-  (shape :: NTuple = (), eltype(shape) == Int && all(collect(shape) .> 0)),
+  (shape :: NTuple = (), eltype(shape) == Int && all(broadcast(>, collect(shape),  0))),
 )
 @characterize_layer(ReshapeLayer,
   can_do_bp => true, # back-propagate via upper layers

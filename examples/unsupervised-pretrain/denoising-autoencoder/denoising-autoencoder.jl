@@ -1,7 +1,6 @@
 ################################################################################
 # Configuration
 ################################################################################
-ENV["MOCHA_USE_CUDA"] = "true"
 using Mocha
 
 # --start-config--
@@ -25,7 +24,7 @@ param_keys       = ["$param_key_prefix-$i" for i = 1:n_hidden_layer]
 ################################################################################
 srand(12345678)
 
-backend = GPUBackend()
+backend = DefaultBackend()
 init(backend)
 
 # --start-basic-layers--
@@ -67,10 +66,11 @@ for i = 1:n_hidden_layer
 
   # --start-pre-train--
   base_dir = "pretrain-$i"
-  pretrain_params  = SolverParameters(max_iter=div(pretrain_epoch*60000,batch_size),
+  method = SGD()
+  pretrain_params  = make_solver_parameters(method, max_iter=div(pretrain_epoch*60000,batch_size),
       regu_coef=0.0, mom_policy=MomPolicy.Fixed(momentum),
       lr_policy=LRPolicy.Fixed(pretrain_lr), load_from=base_dir)
-  solver = SGD(pretrain_params)
+  solver = Solver(method, pretrain_params)
 
   add_coffee_break(solver, TrainingSummary(), every_n_iter=1000)
   add_coffee_break(solver, Snapshot(base_dir), every_n_iter=3000)
@@ -93,10 +93,10 @@ net = Net("MNIST-finetune", backend, [data_layer, rename_layer,
     hidden_layers..., pred_layer, loss_layer])
 
 base_dir = "finetune"
-params = SolverParameters(max_iter=div(finetune_epoch*60000,batch_size),
+params = make_solver_parameters(method, max_iter=div(finetune_epoch*60000,batch_size),
     regu_coef=0.0, mom_policy=MomPolicy.Fixed(momentum),
     lr_policy=LRPolicy.Fixed(finetune_lr), load_from=base_dir)
-solver = SGD(params)
+solver = Solver(method, params)
 
 setup_coffee_lounge(solver, save_into="$base_dir/statistics.jld", every_n_iter=10000)
 
@@ -126,7 +126,7 @@ net = Net("MNIST-rnd", backend, [data_layer, rename_layer,
 base_dir = "randinit"
 
 params = copy(params, load_from=base_dir)
-solver = SGD(params)
+solver = Solver(method, params)
 
 setup_coffee_lounge(solver, save_into="$base_dir/statistics.jld", every_n_iter=10000)
 

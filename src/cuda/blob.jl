@@ -3,12 +3,12 @@ using .CUDA
 export CuBlobDescriptor, CuPODBlobDescriptor, CuTensorBlobDescriptor, CuFilterBlobDescriptor
 export CuTensorBlob
 
-immutable CuTensorBlob{T<:FloatingPoint,N} <: Blob{T,N}
+immutable CuTensorBlob{T<:AbstractFloat,N} <: Blob{T,N}
   ptr   :: CuPtr
   shape :: NTuple{N, Int}
   len   :: Int
 end
-function CuTensorBlob{T<:FloatingPoint, N}(dtype::Type{T}, dims::NTuple{N,Int})
+function CuTensorBlob{T<:AbstractFloat, N}(dtype::Type{T}, dims::NTuple{N,Int})
   len = prod(dims)
   ptr = CUDA.cualloc(dtype, len)
   return CuTensorBlob{T,N}(ptr, dims, len)
@@ -30,7 +30,7 @@ function copy!{T}(dst :: CuTensorBlob{T}, src :: CuTensorBlob{T})
   @CUDA.cucall(:cuMemcpy, (Ptr{Void}, Ptr{Void}, Cint), dst.ptr.p, src.ptr.p, length(dst)*sizeof(T))
 end
 function fill!{T}(dst :: CuTensorBlob{T}, val)
-  val_vec = Array(T, length(dst))
+  val_vec = Array{T}(length(dst))
   fill!(val_vec, val)
   copy!(dst, val_vec)
 end

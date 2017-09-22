@@ -1,5 +1,79 @@
 # News for Mocha Development
 
+## v0.1.3 2016.12.16
+
+* Infrastructure
+  * Fix compatibility issues
+
+## v0.1.2 2016.03.23
+
+* Infrastructure
+  * Fix compatability with Julia v0.5
+  * Fix compatability with cuDNN v4
+* Network
+  * Faster neurons (@uschmidt83)
+
+## v0.1.1 2016.02.29
+
+* Infrastructure
+  * Fix compatability with Julia v0.5 nightly
+  * Fix blasfunc compatibility (@elehcim)
+  * Improved computation performance for neurons on CPU backend (@uschmidt83)
+
+## v0.1.0 2015.10.10
+
+To celebrate the release of Julia v0.4 and increased involvement from the community of the development of Mocha.jl, we decided to have a v0.1.0 release.
+
+* Infrastructure
+  * Backward compatibility with Julia v0.3, and Julia v0.4 compatability
+  * Solver refactoring (@benmoran, @CarloLucibello)
+  * Adam Solver (@benmoran)
+  * Improved compatibility on Windows (@droidicus)
+* Network
+  * Leaky ReLU (@stjanovitz)
+  * Shuffling support for memory-data layer
+  * `DecayOnValidation` now support square-loss like criterions
+  * Variational Auto-Encoder and related layers: `RandomNormal`, `BinaryCrossEntropyLossLayer`, `GaussianKLLoss`, and `Exponential` neuron type (@benmoran)
+  * SVM related layers: `HingeLossLayer` and `BinaryAccuracyLayer` (@nstiurca)
+  * `OrthogonalInitializer` (@benmoran)
+* Documentation
+  * Various typos and improvements from the community
+  * MNIST Variational Auto-Encoder example (@benmoran)
+
+## v0.0.9 2015.07.20
+
+* Infrastructure
+  * Add JLD.jl in REQUIREMENT as it becomes an independent package
+  * Fix a Julia v0.4-dev compatability
+* Interface
+  * GraphViz visualization for network architecture
+
+## v0.0.8 2015.05.27
+
+* Interface
+  * Option to display other information for training summary (@bisraelsen)
+* Infrastructure
+  * Improved gradient check (@steven-varga)
+  * Fix temp file issue for unit-test on Windows
+  * Fix XavierInitializer scale (@adambrewster)
+  * Option to specify GPU device
+* Network
+  * Index2Onehot layer, MemoryOutputLayer
+  * SoftmaxLayer now can do backward
+
+## v0.0.7 2015.02.27
+
+* Infrastructure
+  * Boltzmann.jl now supports DBN pre-training for Mocha.jl
+  * Clearer Nesterov solver (@the-moliver)
+  * Staged momentum policy
+  * Learning rate policy to decay dynamically based on performance on validation set
+* Network
+  * Async HDF5 data layer: faster and with chunking to support fast data shuffling
+  * Softlabel-softmax-loss layer allows training with posterior (instead of hard labels) as labels
+  * Weight loss layers to combine multiple loss functions in one network
+  * Square loss layer is now capable of propagating gradients to both sides
+
 ## v0.0.6 2014.12.31
 
 * Infrastructure

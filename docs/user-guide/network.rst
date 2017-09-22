@@ -38,10 +38,10 @@ stolen from `Wikipedia's page on Artificial Neural Networks
 
 When writing Mocha, I found this kind of illustrations a bit confusing, as it
 does not align well with the abstract concept of *layers* we just described. In
-our abstraction, the computation is done **within** each layers, and the network
+our abstraction, the computation is done **within** each layer, and the network
 architecture specifies the data path connections for the layers only.
 In the figure above, the "Input", "Hidden", and "Output" labels are put on the
-nodes, suggesting the nodes are layers. However, the nodes do not 
+nodes, suggesting the nodes are layers. However, the nodes do not
 computate anything, instead, computations are specified by the arrows connecting these
 nodes.
 
@@ -158,7 +158,7 @@ example, during training, you want to have a *validation net* that shares
 parameters with the *training net*, yet takes a different data layer as input
 data stream and computes the accuracy on the validation set. In this case,
 simply using *the same* ``Layer`` object when constructing both networks will be
-enough. See :doc:`tutorial/mnist` for a concrete example.
+enough. See :doc:`/tutorial/mnist` for a concrete example.
 
 If you want to have **different** layers in **the same** network to share
 parameters, you can just use the same ``param_key`` property in the layers you
@@ -216,3 +216,26 @@ into two (or more) "copies". The split layer can handle back-propagation
 correctly. Moreover, the forward operation of a split layer is implemented with
 data sharing instead of copying. Thus no extra cost is incurred during the forward
 pass.
+
+Debugging
+---------
+
+Mocha provides some utilities to show the structure of a network, which might be
+useful for debugging. First of all, you can just call ``println`` on a network
+object, the sorted layers will be printed, with basic information including blob
+names and shapes, etc. Alternatively, one can call ``net2dot`` to dump the
+network structure to a dot file, a script used by `GraphViz
+<http://www.graphviz.org/>`_. For example, if you have GraphViz installed, the
+following command
+
+.. code-block:: julia
+
+   open("net.dot", "w") do out net2dot(out, net) end
+   run(`dot -Tpng net.dot` |> "net.png")
+
+will generate a visualization of the network architecture in ``net.png``. The
+following is a visualization of the network used in the :doc:`MNIST
+</tutorial/mnist>` example.
+
+.. image:: images/mnist-dot.*
+

@@ -22,9 +22,9 @@ function setup_etc(backend::GPUBackend, layer::ConvolutionLayer, dtype, width, h
       div(channels,layer.n_group), div(layer.n_filter,layer.n_group)))
   bias_desc = CuDNN.create_tensor4d_descriptor(dtype, (1,1,div(layer.n_filter,layer.n_group),1))
 
-  inputs_desc = Array(CuDNN.Tensor4dDescriptor, length(inputs))
-  outputs_desc = Array(CuDNN.Tensor4dDescriptor, length(inputs))
-  conv_desc = Array(CuDNN.ConvolutionDescriptor, length(inputs))
+  inputs_desc = Array{CuDNN.Tensor4dDescriptor}(length(inputs))
+  outputs_desc = Array{CuDNN.Tensor4dDescriptor}(length(inputs))
+  conv_desc = Array{CuDNN.ConvolutionDescriptor}(length(inputs))
   for i = 1:length(inputs)
     inputs_desc[i] = CuDNN.create_tensor4d_descriptor(dtype, (width,height,div(channels,layer.n_group),batch_size),
         (1, width, width*height, width*height*channels))
@@ -42,7 +42,7 @@ function setup_etc(backend::GPUBackend, layer::ConvolutionLayer, dtype, width, h
   if workspace_size == 0
     workspace = CUDA.CuPtr()
   else
-    workspace = CUDA.cualloc(Uint8, workspace_size) # workspace_size is in bytes
+    workspace = CUDA.cualloc(UInt8, workspace_size) # workspace_size is in bytes
   end
 
   bottom_offset = div(channels,layer.n_group) * height * width * sizeof(dtype)
@@ -86,7 +86,7 @@ function forward(backend::GPUBackend, state::ConvolutionLayerState, inputs::Vect
           beta_dont_accumulate)
 
       # bias
-      CuDNN.add_tensor4d(backend.cudnn_ctx, CuDNN.CUDNN_ADD_SAME_C, alpha,
+      CuDNN.add_tensor(backend.cudnn_ctx, alpha,
           state.etc.bias_desc, CuPtr(state.bias.ptr.p + state.etc.bias_offset * (g-1)),
           beta_accumulate, state.etc.outputs_desc[i], output_ptr)
     end

@@ -6,31 +6,33 @@ function test_softmax_loss_layer(backend::Backend, tensor_dim, use_weights::Bool
   else
     op_dim = max(abs(rand(Int)) % tensor_dim, 1)
   end
-  dims = abs(rand(Int,tensor_dim)) % 6 + 6
+  dims = rand(6:11, tensor_dim)
   dims_label = copy(dims); dims_label[op_dim] = 1
   dims = tuple(dims...)
   dims_label = tuple(dims_label...)
   println("    > $dims (operate on dimension $op_dim)")
 
-  input = rand(T, dims) + 0.01
+  input = rand(T, dims) + convert(T, 0.01)
 
   input_blob = make_blob(backend, input)
   diff_blob = make_blob(backend, T, size(input))
 
   if use_weights
-    weights = rand(T, dims[1:end-1]) + 0.1
+    weights = rand(T, dims[1:end-1]) + convert(T, 0.1)
     weights = weights .* (dims[op_dim] ./ sum(weights,op_dim))
   else
     weights = []
   end
 
-  label = abs(rand(Int, dims_label)) % dims[op_dim]
+  label = abs.(rand(Int, dims_label)) .% dims[op_dim]
   label = convert(Array{T}, label)
   label_blob = make_blob(backend, label)
 
   inputs = Blob[input_blob, label_blob]
 
-  layer = SoftmaxLossLayer(bottoms=[:pred, :labels], weights=weights, normalize=:local, dim=op_dim)
+  loss_weight = abs(rand(T))
+
+  layer = SoftmaxLossLayer(bottoms=[:pred, :labels], weights=weights, normalize=:local, dim=op_dim, weight=loss_weight)
   state = setup(backend, layer, inputs, Blob[diff_blob])
 
   println("    > Forward")
@@ -52,14 +54,14 @@ function test_softmax_loss_layer(backend::Backend, tensor_dim, use_weights::Bool
   label = reshape(label, dim_pre, 1, dim_post)
   for i = 1:dim_pre
     for j = 1:dim_post
-      pred = exp(canonical_input[i,:,j])
+      pred = exp.(canonical_input[i,:,j])
       pred /= sum(pred)
       if isempty(weights)
         canonical_grad[i,:,j] = pred
-        canonical_grad[i,int(label[i,1,j])+1,j] -= 1
-        expected_loss += -log(pred[int(label[i,1,j])+1])
+        canonical_grad[i,round(Int, label[i,1,j])+1,j] -= 1
+        expected_loss += -log(pred[round(Int, label[i,1,j])+1])
       else
-        y = int(label[i,1,j])+1
+        y = round(Int, label[i,1,j])+1
         canonical_grad[i,:,j] = pred .* weights[i,y,j]
         canonical_grad[i,y,j] -= weights[i,y,j]
         expected_loss += -log(pred[y]) * weights[i,y,j]
@@ -67,8 +69,8 @@ function test_softmax_loss_layer(backend::Backend, tensor_dim, use_weights::Bool
     end
   end
   scale = dims[op_dim] / prod(dims)
-  expected_loss *= scale
-  expected_grad *= scale
+  expected_loss *= scale * loss_weight
+  expected_grad *= scale * loss_weight
   expected_grad = reshape(expected_grad, size(input))
 
   @test -eps < state.loss - expected_loss < eps

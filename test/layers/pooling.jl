@@ -18,7 +18,7 @@ function test_pooling_layer(backend::Backend, pooling::PoolingFunction, has_padd
   stride_w    = 1
   stride_h    = 2
 
-  dims = [abs(rand(Int,4)) % 5 + 12 for i = 1:n_input]
+  dims = [rand(12:16, 4) for i =1:n_input]
   dims[1] = [input_w, input_h, input_chann, input_num]
   if isa(backend, AbstractGPUBackend)
     for i = 1:n_input
@@ -37,7 +37,7 @@ function test_pooling_layer(backend::Backend, pooling::PoolingFunction, has_padd
   end
 
   layer = PoolingLayer(kernel=(kernel_w,kernel_h), stride=(stride_w,stride_h), pad=padding,
-      tops=Array(Symbol,n_input), bottoms=Array(Symbol,n_input), pooling=pooling)
+      tops=Array{Symbol}(n_input), bottoms=Array{Symbol}(n_input), pooling=pooling)
 
   input = [rand(T, dims[i]...) for i = 1:n_input]
   inputs = Blob[make_blob(backend, x) for x in input]
@@ -48,7 +48,7 @@ function test_pooling_layer(backend::Backend, pooling::PoolingFunction, has_padd
   println("    > Forward")
   forward(backend, state, inputs)
 
-  payloads = Array(Any, n_input)
+  payloads = Array{Any}(n_input)
   for i = 1:n_input
     expected_output, payloads[i] = pooling_forward(state, i, input[i])
     got_output = similar(expected_output)
@@ -96,7 +96,7 @@ function pooling_forward(state, i, input::Array)
           hstart = max(1, hstart)
           wstart = max(1, wstart)
 
-          region = sub(input, wstart:wend, hstart:hend, c, n)
+          region = view(input, wstart:wend, hstart:hend, c, n)
           if isa(state.layer.pooling, Pooling.Max)
             index = indmax(region)
             mask[pw, ph, c, n] = index # note this is local index in region
@@ -137,7 +137,7 @@ function pooling_backward(state, i, input::Array, diff::Array, payload::Any)
           hstart = max(1, hstart)
           wstart = max(1, wstart)
 
-          region = sub(gradient, wstart:wend, hstart:hend, c, n)
+          region = view(gradient, wstart:wend, hstart:hend, c, n)
           if isa(state.layer.pooling, Pooling.Max)
             index = payload[pw, ph, c, n]
             region[index] += diff[pw, ph, c, n]
@@ -163,7 +163,7 @@ end
 
 function test_pooling_layer(backend::Backend)
   test_pooling_layer(backend, 4, Float64, 1e-7)
-  test_pooling_layer(backend, 3, Float32, 1e-3)
+  test_pooling_layer(backend, 2, Float32, 1e-3)
 end
 
 if test_cpu

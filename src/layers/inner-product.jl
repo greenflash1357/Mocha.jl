@@ -1,6 +1,6 @@
 @defstruct InnerProductLayer Layer (
-  (name :: String = "", !isempty(name)),
-  param_key :: String = "",
+  (name :: AbstractString = "", !isempty(name)),
+  param_key :: AbstractString = "",
   (tops :: Vector{Symbol} = Symbol[], length(tops) >= 1),
   (bottoms :: Vector{Symbol} = Symbol[], length(bottoms) == length(tops)),
   (output_dim :: Int = 0, output_dim > 0),
@@ -10,8 +10,8 @@
   bias_regu :: Regularizer = NoRegu(),
   weight_cons :: Constraint = NoCons(),
   bias_cons :: Constraint = NoCons(),
-  weight_lr :: FloatingPoint = 1.0,
-  bias_lr :: FloatingPoint = 2.0,
+  weight_lr :: AbstractFloat = 1.0,
+  bias_lr :: AbstractFloat = 2.0,
   neuron :: ActivationFunction = Neurons.Identity()
 )
 @characterize_layer(InnerProductLayer,
@@ -48,9 +48,9 @@ type InnerProductLayerState <: LayerState
       @assert eltype(inputs[i]) == data_type
     end
 
-    blobs = Array(Blob, length(inputs))
-    blobs_diff = Array(Blob, length(inputs))
-    bias_multipliers = Array(Blob, length(inputs))
+    blobs = Array{Blob}(length(inputs))
+    blobs_diff = Array{Blob}(length(inputs))
+    bias_multipliers = Array{Blob}(length(inputs))
 
     for i = 1:length(inputs)
       nums = get_num(inputs[i])

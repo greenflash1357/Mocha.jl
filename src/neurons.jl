@@ -19,7 +19,7 @@ export forward, backward
 #   function.
 ############################################################
 
-abstract ActivationFunction
+@compat abstract type ActivationFunction end
 
 ############################################################
 # A module to hold built-in activation functions to avoid
@@ -31,12 +31,26 @@ using ..Mocha.ActivationFunction
 type Identity <: ActivationFunction
 end
 
-# Rectified-Linear: ReLU(x) = max(x,0)
+# Rectified-Linear: ReLU(eps)(x) = max(x,eps)
 type ReLU <: ActivationFunction
+  epsilon::Float64 # optional floor value, default zero
+end
+ReLU() = ReLU(0.0)
+
+# Exponential: Exponential(x) = exp(x)
+type Exponential <: ActivationFunction
+end
+
+# Leaky Rectified-Linear: LReLU(x) = x > 0 ? x : 0.01x
+type LReLU <: ActivationFunction
 end
 
 # Sigmoid: Sigmoid(x) = 1 / (1 + exp(-x))
 type Sigmoid <: ActivationFunction
+end
+
+# Sigmoid: Tanh(x) = (1 + exp(-2x)) / (1 + exp(-2x))
+type Tanh <: ActivationFunction
 end
 end # module Neurons
 
@@ -54,28 +68,101 @@ end
 # Rectified-Linear
 ############################################################
 function forward(backend :: CPUBackend, neuron :: Neurons.ReLU, output :: Blob)
-  @simd for i = 1:length(output.data)
-    @inbounds output.data[i] = max(0, output.data[i])
+  function _forward(output::AbstractArray)
+    @simd for i = 1:length(output)
+      @inbounds output[i] = max(neuron.epsilon, output[i])
+    end
   end
+  _forward(output.data)
 end
 function backward(backend :: CPUBackend, neuron :: Neurons.ReLU, output :: Blob, gradient :: Blob)
-  @simd for i = 1:length(output.data)
-    @inbounds gradient.data[i] *= (output.data[i] > 0)
+  function _backward(output::AbstractArray, gradient::AbstractArray)
+    @simd for i = 1:length(output)
+      @inbounds gradient[i] *= (output[i] > neuron.epsilon)
+    end
   end
+  _backward(output.data, gradient.data)
+end
+
+############################################################
+# Leaky Rectified-Linear
+############################################################
+function forward(backend :: CPUBackend, neuron :: Neurons.LReLU, output :: Blob)
+  function _forward(output::AbstractArray)
+    @simd for i = 1:length(output)
+      @inbounds output[i] = output[i] > 0 ? output[i] : 0.01 * output[i]
+    end
+  end
+  _forward(output.data)
+end
+function backward(backend :: CPUBackend, neuron :: Neurons.LReLU, output :: Blob, gradient :: Blob)
+  function _backward(output::AbstractArray, gradient::AbstractArray)
+    @simd for i = 1:length(output)
+      @inbounds gradient[i] *= ((output[i] > 0) + 0.01 * (output[i] <= 0))
+    end
+  end
+  _backward(output.data, gradient.data)
 end
 
 ############################################################
 # Sigmoid
 ############################################################
 function forward(backend :: CPUBackend, neuron :: Neurons.Sigmoid, output :: Blob)
-  len = length(output)
-  @simd for i = 1:len
-    @inbounds output.data[i] = 1 / (1 + exp(-output.data[i]))
+  function _forward(output::AbstractArray)
+    @simd for i = 1:length(output)
+      @inbounds output[i] = 1 / (1 + exp(-output[i]))
+    end
   end
+  _forward(output.data)
 end
 function backward(backend :: CPUBackend, neuron :: Neurons.Sigmoid, output :: Blob, gradient :: Blob)
-  len = length(output)
-  @simd for i = 1:len
-    @inbounds gradient.data[i] *= output.data[i] * (1-output.data[i])
+  function _backward(output::AbstractArray, gradient::AbstractArray)
+    @simd for i = 1:length(output)
+      @inbounds gradient[i] *= output[i] * (1-output[i])
+    end
   end
+  _backward(output.data, gradient.data)
+end
+
+
+############################################################
+# Tanh
+############################################################
+function forward(backend :: CPUBackend, neuron :: Neurons.Tanh, output :: Blob)
+  function _forward(output::AbstractArray)
+    @simd for i = 1:length(output)
+      @inbounds output[i] = tanh(output[i])
+    end
+  end
+  _forward(output.data)
+end
+function backward(backend :: CPUBackend, neuron :: Neurons.Tanh, output :: Blob, gradient :: Blob)
+  function _backward(output::AbstractArray, gradient::AbstractArray)
+    @simd for i = 1:length(output)
+      @inbounds gradient[i] *= (1 - output[i] * output[i])
+    end
+  end
+  _backward(output.data, gradient.data)
+end
+
+
+
+############################################################
+# Exponential
+############################################################
+function forward(backend :: CPUBackend, neuron :: Neurons.Exponential, output :: Blob)
+  function _forward(output::AbstractArray)
+    @simd for i = 1:length(output)
+      @inbounds output[i] = exp(output[i])
+    end
+  end
+  _forward(output.data)
+end
+function backward(backend :: CPUBackend, neuron :: Neurons.Exponential, output :: Blob, gradient :: Blob)
+  function _backward(output::AbstractArray, gradient::AbstractArray)
+    @simd for i = 1:length(output)
+      @inbounds gradient[i] *= output[i]
+    end
+  end
+  _backward(output.data, gradient.data)
 end

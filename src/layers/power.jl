@@ -2,7 +2,7 @@
 # Power Layer
 ############################################################
 @defstruct PowerLayer Layer (
-  name :: String = "power",
+  name :: AbstractString = "power",
   (power :: Number = 1, isreal(power)),
   (scale :: Number = 1, isreal(scale)),
   (shift :: Number = 0, isreal(shift)),
@@ -21,7 +21,7 @@ end
 
 function setup(backend::Backend, layer::PowerLayer, inputs::Vector{Blob}, diffs::Vector{Blob})
   blobs = Blob[make_blob(backend, eltype(x), size(x)) for x in inputs]
-  blobs_diff = Array(Blob, length(inputs))
+  blobs_diff = Array{Blob}(length(inputs))
   for i = 1:length(inputs)
     # if the bottom layer does not need back propagate, I don't need, either
     if isa(diffs[i], NullBlob)
@@ -73,6 +73,9 @@ function backward(backend::CPUBackend, state::PowerLayerState,
   pow_scale = convert(data_type,state.layer.power * state.layer.scale)
   for i = 1:length(inputs)
     diff = diffs[i]
+    if isa(diff, NullBlob)
+      continue
+    end
     if state.layer.power == 1 || state.layer.scale == 0
       # trivial case, derivative is constant
       fill!(diff, pow_scale)

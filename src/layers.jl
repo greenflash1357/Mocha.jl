@@ -1,14 +1,17 @@
 export LayerState
 
-export HDF5DataLayer, MemoryDataLayer
+export HDF5DataLayer, MemoryDataLayer, AsyncHDF5DataLayer
 export InnerProductLayer, ConvolutionLayer, PoolingLayer, SoftmaxLayer
 export PowerLayer, SplitLayer, ElementWiseLayer, ChannelPoolingLayer
 export LRNLayer, DropoutLayer, ReshapeLayer, ArgmaxLayer, HDF5OutputLayer
 export CropLayer, ConcatLayer, RandomMaskLayer, TiedInnerProductLayer
-export IdentityLayer
+export IdentityLayer, Index2OnehotLayer, MemoryOutputLayer
 export SquareLossLayer, SoftmaxLossLayer, MultinomialLogisticLossLayer
-export AccuracyLayer
+export SoftlabelSoftmaxLossLayer, WassersteinLossLayer, HingeLossLayer
+export AccuracyLayer, BinaryAccuracyLayer, BinaryCrossEntropyLossLayer
 
+export RandomNormalLayer
+export GaussianKLLossLayer
 export setup, forward, backward, shutdown
 
 export get_param_key
@@ -100,11 +103,11 @@ export freeze!, unfreeze!, is_frozen
   has_stats  => false, # produce statistics
 )
 
-function setup(backend::Backend, layer::Layer, shared_parameters, inputs::Vector{Blob}, diffs::Vector{Blob})
+function setup(backend::Backend, layer::Layer, inputs::Vector{Blob}, diffs::Vector{Blob})
   error("Not implemented, should setup layer state")
 end
 
-# Overload when there is no shared_parameters
+# Default overload when there is no shared_parameters
 function setup(backend::Backend, layer::Layer, shared_parameters, inputs::Vector{Blob}, diffs::Vector{Blob})
   setup(backend, layer, inputs, diffs)
 end
@@ -183,6 +186,7 @@ end
 #############################################################
 include("layers/hdf5-data.jl")
 include("layers/memory-data.jl")
+include("layers/async-hdf5-data.jl")
 
 #############################################################
 # General Computation Layers
@@ -203,12 +207,15 @@ include("layers/concat.jl")
 include("layers/random-mask.jl")
 include("layers/tied-inner-product.jl")
 include("layers/identity.jl")
+include("layers/random-normal.jl")
 
 #############################################################
 # Utility layers
 #############################################################
 include("layers/argmax.jl")
 include("layers/hdf5-output.jl")
+include("layers/index2onehot.jl")
+include("layers/memory-output.jl")
 
 #############################################################
 # Loss Layers
@@ -216,9 +223,15 @@ include("layers/hdf5-output.jl")
 include("layers/square-loss.jl")
 include("layers/multinomial-logistic-loss.jl")
 include("layers/softmax-loss.jl")
+include("layers/softlabel-softmax-loss.jl")
+include("layers/wasserstein-loss.jl")
+include("layers/binary-cross-entropy-loss.jl")
+include("layers/gaussian-kl-loss.jl")
+include("layers/hinge-loss.jl")
 
 #############################################################
 # Statistics Layers
 #############################################################
 include("layers/accuracy.jl")
+include("layers/binary-accuracy.jl")
 

@@ -4,7 +4,7 @@ Utility Layers
 .. class:: ConcatLayer
 
    Concatenates multiple blobs into a single blob along the specified dimension. Except in
-   the concatenation dimension, the shapes of the blobs being concatenated have to 
+   the concatenation dimension, the shapes of the blobs being concatenated have to
    be the same.
 
    .. attribute:: dim
@@ -18,6 +18,20 @@ Utility Layers
    .. attribute:: tops
 
       Name of the concatenated output blob.
+
+.. class:: MemoryOutputLayer
+
+   Takes some blobs in the network and collect their data during forward pass of
+   the network as a list of julia ``Array`` objects. Useful when doing in-memory
+   testing for collecting the output. After running the forward pass of the
+   network, the ``outputs`` field of the corresponding layer state object will
+   contain a vector of the same size as the ``bottoms`` attribute. Each element
+   of the vector is a list of tensors (julia ``Array`` objects), each tensor
+   corresponds to the output in a mini-batch.
+
+   .. attribute:: bottoms
+
+      A list of names of the blobs in the network to store.
 
 .. class:: HDF5OutputLayer
 
@@ -62,6 +76,31 @@ Utility Layers
       Blob names for output and input. This layer can take multiple input
       blobs and produce the corresponding number of output blobs. The shapes of
       the input blobs do not need to be the same.
+
+.. class:: Index2OnehotLayer
+
+   A utility layer that could convert category class into one-hot encoded
+   vector. For example, for K classes, input j is converted into a vector of
+   size K, with all zeros, but the (j-1)-th entry 1.
+
+   .. attribute:: dim
+
+      The dimension to operate on. The input must have size 1 on this dimension,
+      i.e. ``size(input, dim) == 1``. And the value should be integers from 0 to
+      (K-1).
+
+   .. attribute:: n_class
+
+      Number of categories, i.e. K as described above.
+
+   .. attribute::
+      tops
+      bottoms
+
+      Blob names for output and input. This layer can take multiple input
+      blobs and produce the corresponding number of output blobs. The shapes of
+      the input blobs do not need to be the same. But they will be operated on
+      the same dimension, and the ``n_class`` for them are the same.
 
 .. class:: ReshapeLayer
 

@@ -1,6 +1,6 @@
 export ElementWiseFunctorType, ElementWiseFunctors
 export get_num_args
-abstract ElementWiseFunctorType{NArg}
+@compat abstract type ElementWiseFunctorType{NArg} end
 
 get_num_args{NArg}(::ElementWiseFunctorType{NArg}) = NArg
 
@@ -20,7 +20,7 @@ end # module ElementWiseFunctors
 # Element-wise operation layer
 ############################################################
 @defstruct ElementWiseLayer Layer (
-  name :: String = "element-wise",
+  name :: AbstractString = "element-wise",
   operation :: ElementWiseFunctorType = ElementWiseFunctors.Add(),
   (tops :: Vector{Symbol} = Symbol[], length(tops) == 1),
   (bottoms :: Vector{Symbol} = Symbol[], length(bottoms) == get_num_args(operation)),

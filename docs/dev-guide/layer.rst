@@ -31,7 +31,7 @@ example
 .. code-block:: julia
 
    @defstruct PoolingLayer Layer (
-     name :: String = "pooling",
+     name :: AbstractString = "pooling",
      (bottoms :: Vector{Symbol} = Symbol[], length(bottoms) > 0),
      (tops :: Vector{Symbol} = Symbol[], length(tops) == length(bottoms)),
      (kernel :: NTuple{2, Int} = (1,1), all([kernel...] .> 0)),
@@ -120,7 +120,7 @@ requirements:
 ``has_neuron``
   The ``Layer`` object should have a property called ``neuron`` of type
   :class:`ActivationFunction`.
-``can_db_bp``
+``can_do_bp``
   Should be true if the layer has the ability to do back propagation.
 ``is_inplace``
   An inplace ``Layer`` object should have no ``tops`` property because the
@@ -156,7 +156,7 @@ The life cycle of a layer is
    call ``setup_layer`` on each ``Layer`` to construct the corresponding
    ``LayerState``.
 3. During training, the solver use a loop to call the ``forward`` and ``backward``
-   funcitons of the ``Net``. The ``Net`` will then call ``forward`` and ``backward`` of
+   functions of the ``Net``. The ``Net`` will then call ``forward`` and ``backward`` of
    each layer in a proper order.
 4. The user destroys the ``Net``, which will call the ``shutdown`` function of
    each layer.
@@ -228,4 +228,3 @@ Layer Activation Function
 When it makes sense for a layer to have an activation function, it can add
 a ``neuron`` property to the ``Layer`` object and define the ``has_neuron``
 characterization. Everything else will be handled automatically.
-

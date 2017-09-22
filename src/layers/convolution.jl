@@ -1,11 +1,11 @@
 @defstruct ConvolutionLayer Layer (
-  (name :: String = "", !isempty(name)),
-  param_key :: String = "",
+  (name :: AbstractString = "", !isempty(name)),
+  param_key :: AbstractString = "",
   (bottoms :: Vector{Symbol} = Symbol[], length(bottoms) > 0),
   (tops :: Vector{Symbol} = Symbol[], length(tops) == length(bottoms)),
-  (kernel :: NTuple{2,Int} = (1,1), all([kernel...] .> 0)),
-  (stride :: NTuple{2,Int} = (1,1), all([stride...] .> 0)),
-  (pad :: NTuple{2, Int} = (0,0), all([pad...] .>= 0)),
+  (kernel :: NTuple{2,Int} = (1,1), all(broadcast(>, [kernel...], 0))),
+  (stride :: NTuple{2,Int} = (1,1), all(broadcast(>, [stride...], 0))),
+  (pad :: NTuple{2, Int} = (0,0), all(broadcast(>=, [pad...], 0))),
   (n_filter :: Int = 1, n_filter > 0),
   (n_group :: Int = 1, n_group > 0),
   neuron :: ActivationFunction = Neurons.Identity(),
@@ -123,8 +123,8 @@ type ConvolutionLayerState <: LayerState
       @assert dtype == eltype(inputs[i])
     end
 
-    blobs = Array(Blob, length(inputs))
-    blobs_diff = Array(Blob, length(inputs))
+    blobs = Array{Blob}(length(inputs))
+    blobs_diff = Array{Blob}(length(inputs))
 
     for i = 1:length(inputs)
       blobs[i] = make_blob(backend, dtype, state.width_out, state.height_out, layer.n_filter, batch_size)

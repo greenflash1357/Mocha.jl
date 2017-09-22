@@ -1,8 +1,3 @@
-#ENV["MOCHA_USE_NATIVE_EXT"] = "true"
-#ENV["OMP_NUM_THREADS"] = 1
-#blas_set_num_threads(1)
-ENV["MOCHA_USE_CUDA"] = "true"
-
 using Mocha
 
 ############################################################
@@ -37,7 +32,7 @@ using Mocha
 # fix the random seed to make results reproducable
 srand(12345678)
 
-data_layer  = HDF5DataLayer(name="train-data", source="data/train.txt", batch_size=100)
+data_layer  = AsyncHDF5DataLayer(name="train-data", shuffle=true, source="data/train.txt", batch_size=100)
 # each fully connected layer uses a ReLU activation and a constraint on the L2 norm of the weights
 fc1_layer   = InnerProductLayer(name="fc1", output_dim=1200, neuron=Neurons.ReLU(),
                                 weight_init = GaussianInitializer(std=0.01),
@@ -60,7 +55,7 @@ drop_input  = DropoutLayer(name="drop_in", bottoms=[:data], ratio=0.2)
 drop_fc1 = DropoutLayer(name="drop_fc1", bottoms=[:fc1], ratio=0.5)
 drop_fc2  = DropoutLayer(name="drop_fc2", bottoms=[:fc2], ratio=0.5)
 
-backend = GPUBackend()
+backend = DefaultBackend()
 init(backend)
 
 common_layers = [fc1_layer, fc2_layer, fc3_layer]
@@ -68,16 +63,17 @@ drop_layers = [drop_input, drop_fc1, drop_fc2]
 # put training net together, note that the correct ordering will automatically be established by the constructor
 net = Net("MNIST-train", backend, [data_layer, common_layers..., drop_layers..., loss_layer])
 
-base_dir = "snapshots_dropout_fc"
+base_dir = "snapshots_dropout_ft-$(Mocha.default_backend_type)"
 # we let the learning rate decrease by 0.998 in each epoch (=600 batches of size 100)
 # and let the momentum increase linearly from 0.5 to 0.9 over 500 epochs
 # which is equivalent to an increase step of 0.0008
 # training is done for 2000 epochs
-params = SolverParameters(max_iter=600*2000, regu_coef=0.0,
+method = SGD()
+params = make_solver_parameters(method, max_iter=600*2000, regu_coef=0.0,
                           mom_policy=MomPolicy.Linear(0.5, 0.0008, 600, 0.9),
                           lr_policy=LRPolicy.Step(0.1, 0.998, 600),
                           load_from=base_dir)
-solver = SGD(params)
+solver = Solver(method, params)
 
 setup_coffee_lounge(solver, save_into="$base_dir/statistics.jld", every_n_iter=5000)
 
@@ -88,7 +84,7 @@ add_coffee_break(solver, TrainingSummary(), every_n_iter=100)
 add_coffee_break(solver, Snapshot(base_dir), every_n_iter=5000)
 
 # show performance on test data every 600 iterations (one epoch)
-data_layer_test = HDF5DataLayer(name="test-data", source="data/test.txt", batch_size=100)
+data_layer_test = AsyncHDF5DataLayer(name="test-data", source="data/test.txt", batch_size=100)
 acc_layer = AccuracyLayer(name="test-accuracy", bottoms=[:out, :label], report_error=true)
 test_net = Net("MNIST-test", backend, [data_layer_test, common_layers..., acc_layer])
 add_coffee_break(solver, ValidationPerformance(test_net), every_n_iter=600)

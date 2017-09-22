@@ -68,8 +68,11 @@ function test_convolution_layer(backend::Backend, n_group, filter_w, filter_h, p
   copy!(grad_filter_got, state.∇filter)
   copy!(grad_bias_got, state.∇bias)
 
-  is_grad_filter_match = all(abs(grad_filter_exp - grad_filter_got) .< eps)
-  is_grad_bias_match   = all(abs(grad_bias_exp - grad_bias_got) .< eps)
+  #is_grad_filter_match = all(abs.(grad_filter_exp - grad_filter_got) .< eps)
+  #is_grad_bias_match   = all(abs.(grad_bias_exp - grad_bias_got) .< eps)
+
+  is_grad_filter_match = all(map((x,y)->isapprox(x,y; atol=eps), grad_filter_exp, grad_filter_got))
+  is_grad_bias_match   = all(map((x,y)->isapprox(x,y; atol=eps), grad_bias_exp, grad_bias_got))
 
   if freeze
     # when frozen, the gradients are not computed, so the got value
@@ -78,6 +81,8 @@ function test_convolution_layer(backend::Backend, n_group, filter_w, filter_h, p
     @test !is_grad_bias_match
     @test !is_grad_filter_match
   else
+    @show maximum(abs.(grad_filter_exp .- grad_filter_got))
+    @show eps
     @test is_grad_filter_match
     @test is_grad_bias_match
   end
@@ -91,8 +96,8 @@ function convolution_forward(state, filter::Array, bias::Array, input::Array)
   output = zeros(eltype(input), size(state.blobs[1]))
 
   n_group = state.layer.n_group
-  o_g = int(state.layer.n_filter / n_group)
-  k_g = int(channel / n_group)
+  o_g = round(Int, state.layer.n_filter / n_group)
+  k_g = round(Int, channel / n_group)
 
   if state.layer.deconv
     ## Deconvolution
@@ -166,8 +171,8 @@ function convolution_backward(state, filter::Array, bias::Array, input::Array, t
 
   width, height, channels, num = size(input)
   n_group = state.layer.n_group
-  o_g = int(state.layer.n_filter / n_group)
-  k_g = int(channels / n_group)
+  o_g = round(Int, state.layer.n_filter / n_group)
+  k_g = round(Int, channels / n_group)
 
   # ∇bias
   for n = 1:num
